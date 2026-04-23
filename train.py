@@ -83,7 +83,8 @@ def main():
             
             all_scores.extend(error.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
-                        error_map = (images - recon)**2
+            
+            error_map = (images - recon)**2
             heatmap = error_map.mean(dim=1)   # shape: (B, H, W)
             heatmap = heatmap[0].cpu().numpy()
             heatmap = (heatmap - heatmap.min()) / (heatmap.max() - heatmap.min() + 1e-8)
