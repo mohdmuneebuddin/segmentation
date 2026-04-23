@@ -1,5 +1,6 @@
+from src.config import *
 import tarfile
-with tarfile.open("C:/Users/munee/Downloads/bottle (1).tar.xz", "r:xz") as tar:
+with tarfile.open(DATASET_PATH, "r:xz") as tar:
     tar.extractall('dataset')
 import os
 from PIL import Image
