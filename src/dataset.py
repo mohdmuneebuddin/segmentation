@@ -15,7 +15,8 @@ class MVTecDataset(Dataset):
             for file in files:
                 if file.endswith(".png"):
                     path = os.path.join(root, file)
-                    label = 0 if 'good' in root else 1
+                    folder_name = os.path.basename(os.path.dirname(path))
+                    label = 0 if folder_name == "good" else 1
                     self.images.append((path, label))
         print("TOTAL IMAGES:", len(self.images))
         self.transform = transforms.Compose([
