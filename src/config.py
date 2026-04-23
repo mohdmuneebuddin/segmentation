@@ -3,3 +3,4 @@ TEST_BATCH_SIZE = 1
 LEARNING_RATE = 1e-3
 NUM_EPOCHS = 10
 WEIGHT_DECAY = 1e-5
+DATASET_PATH = "/content/drive/MyDrive/datasets/mvtec"
