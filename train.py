@@ -39,7 +39,7 @@ def main():
         model.train()
         total_train_loss = 0
         train_bar = tqdm(train_loader, desc=f" Epoch {epoch +1}/{NUM_EPOCHS}")
-        for images in train_bar:
+        for images, _ in train_bar:
             images = images.to(device)
 
             output = model(images)
@@ -61,7 +61,7 @@ def main():
     train_errors = []
     with torch.no_grad():
         threshold_bar = tqdm(train_loader, desc=f" Epoch {epoch+1}/{NUM_EPOCHS}")
-        for images in threshold_bar:
+        for images, _ in threshold_bar:
             images = images.to(device)
             recon = model(images)
             error = torch.mean((recon - images)**2, dim = [1,2,3])
