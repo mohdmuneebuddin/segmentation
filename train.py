@@ -23,6 +23,10 @@ def main():
     
     print("Loading Test Dataset..." )
     test_dataset = MVTecDataset("/content/drive/MyDrive/datasets/bottle/test")
+    labels = [label for _, label in test_dataset.images]
+    print("Unique test labels:", set(labels))
+    print("Count of 0:", labels.count(0))
+    print("Count of 1:", labels.count(1))
     test_loader = DataLoader(test_dataset, batch_size = TEST_BATCH_SIZE, shuffle = False)
     
     model = AutoEncoder().to(device)
