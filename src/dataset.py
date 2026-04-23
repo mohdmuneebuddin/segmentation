@@ -1,7 +1,4 @@
 from src.config import *
-import tarfile
-with tarfile.open(DATASET_PATH, "r:xz") as tar:
-    tar.extractall('dataset')
 import os
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
