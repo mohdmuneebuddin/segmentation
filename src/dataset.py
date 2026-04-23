@@ -17,7 +17,7 @@ class MVTecDataset(Dataset):
                     path = os.path.join(root, file)
                     label = 0 if 'good' in root else 1
                     self.images.append((path, label))
-
+        print("TOTAL IMAGES:", len(self.images))
         self.transform = transforms.Compose([
             transforms.Resize((256, 256)),
             transforms.ToTensor(),
