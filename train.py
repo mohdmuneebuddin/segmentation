@@ -18,11 +18,11 @@ def main():
     print(f"GPU memory cleared. Available GPUs: {torch.cuda.get_device_properties(0).total_memory / 1e9:.2f}GB")
     
     print("Loading Train Dataset..." )
-    train_dataset = MVTecDataset("dataset/bottle/train/good")
+    train_dataset = MVTecDataset("datasets/bottle/train/good")
     train_loader = DataLoader(train_dataset, batch_size = BATCH_SIZE, shuffle = True)
     
     print("Loading Test Dataset..." )
-    test_dataset = MVTecDataset("dataset/bottle/test")
+    test_dataset = MVTecDataset("datasets/bottle/test")
     test_loader = DataLoader(test_dataset, batch_size = TEST_BATCH_SIZE, shuffle = False)
     
     model = AutoEncoder().to(device)
