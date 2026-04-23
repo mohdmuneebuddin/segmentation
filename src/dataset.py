@@ -19,7 +19,7 @@ class MVTecDataset(Dataset):
                     self.images.append(path)
 
         self.transform = transforms.Compose([
-            transforms.Resize(256, 256),
+            transforms.Resize((256, 256)),
             transforms.ToTensor(),
         ])
 
