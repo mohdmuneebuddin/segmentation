@@ -16,7 +16,7 @@ class MVTecDataset(Dataset):
                 if file.endswith(".png"):
                     path = os.path.join(root, file)
                     label = 0 if 'good' in root else 1
-                    self.images.append(path)
+                    self.images.append((path, label))
 
         self.transform = transforms.Compose([
             transforms.Resize((256, 256)),
@@ -27,8 +27,8 @@ class MVTecDataset(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        img_path = self.images[idx]
-        img = Image.open(img_path)
+        img_path, label = self.images[idx]
+        img = Image.open(img_path).convert("RGB")
         img = self.transform(img)
         
         return img, label
