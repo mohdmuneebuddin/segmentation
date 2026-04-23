@@ -86,7 +86,8 @@ def main():
 
     acc = accuracy_score(all_labels, preds)
     f1 = f1_score(all_labels, preds)
-    
+    auc = roc_auc_score(all_labels, all_scores)
+
 
     print("Accuracy:", acc)
     print("F1 Score:", f1)
