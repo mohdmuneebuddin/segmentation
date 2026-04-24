@@ -21,8 +21,7 @@ class MVTecDataset(Dataset):
         print("TOTAL IMAGES:", len(self.images))
         self.transform = transforms.Compose([
         transforms.Resize((256, 256)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5]*3, std=[0.5]*3)
+        transforms.ToTensor()
         ])
 
     def __len__(self):
