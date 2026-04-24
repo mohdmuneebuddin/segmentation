@@ -1,7 +1,7 @@
 BATCH_SIZE = 16
 TEST_BATCH_SIZE = 4
 LEARNING_RATE = 1e-3
-NUM_EPOCHS = 20          # autoencoders on small data need many epochs
+NUM_EPOCHS = 50          # autoencoders on small data need many epochs
 WEIGHT_DECAY = 1e-5
 IMG_SIZE = 256
 SEED = 42
