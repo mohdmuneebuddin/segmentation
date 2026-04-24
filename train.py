@@ -7,126 +7,120 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn.metrics import f1_score, accuracy_score, roc_auc_score
 
-from src.autoencmodel import AutoEncoder
+from src.model import UNetAutoencoder   
 from src.dataset import MVTecDataset
 from src.config import *
 
+
 def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print("Using device: ", device)
-    torch.cuda.empty_cache()
-    print(f"GPU memory cleared. Available GPUs: {torch.cuda.get_device_properties(0).total_memory / 1e9:.2f}GB")
-    
-    print("Loading Train Dataset..." )
+    print("Using device:", device)
+
+    # ------------------ DATA ------------------
+    print("Loading Train Dataset...")
     train_dataset = MVTecDataset("/content/drive/MyDrive/datasets/bottle/train/good")
-    train_loader = DataLoader(train_dataset, batch_size = BATCH_SIZE, shuffle = True)
-    
-    print("Loading Test Dataset..." )
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+
+    print("Loading Test Dataset...")
     test_dataset = MVTecDataset("/content/drive/MyDrive/datasets/bottle/test")
+    test_loader = DataLoader(test_dataset, batch_size=TEST_BATCH_SIZE, shuffle=False)
+
+    # Debug labels
     labels = [label for _, label in test_dataset.images]
     print("Unique test labels:", set(labels))
     print("Count of 0:", labels.count(0))
     print("Count of 1:", labels.count(1))
-    test_loader = DataLoader(test_dataset, batch_size = TEST_BATCH_SIZE, shuffle = False)
-    
-    model = AutoEncoder().to(device)
+
+    # ------------------ MODEL ------------------
+    model = UNetAutoencoder(in_channels=3, out_channels=3).to(device)
 
     criterion = nn.MSELoss()
-    optimizer = optim.AdamW(model.parameters(), lr = LEARNING_RATE, weight_decay = WEIGHT_DECAY)
-    scheduler = CosineAnnealingLR(optimizer, T_max = NUM_EPOCHS )
-    print(f"Optimizer: AdamW (lr={LEARNING_RATE}),  weight_decay={WEIGHT_DECAY})")
+    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    scheduler = CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS)
+
+    print(f"Optimizer: AdamW (lr={LEARNING_RATE})")
     print(f"Scheduler: CosineAnnealingLR (T_max={NUM_EPOCHS})")
-    print(f"Loss: MSELoss")
+    print("Loss: MSELoss")
+
+    # ------------------ TRAINING ------------------
     print("Training Started...")
-    train_losses = []
     for epoch in range(NUM_EPOCHS):
         model.train()
-        total_train_loss = 0
-        train_bar = tqdm(train_loader, desc=f" Epoch {epoch +1}/{NUM_EPOCHS}")
-        for images, _ in train_bar:
+        total_loss = 0
+
+        train_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{NUM_EPOCHS}")
+
+        for images, _ in train_bar:   # ✅ FIXED unpacking
             images = images.to(device)
 
-            output = model(images)
-            loss = criterion(output, images)
+            outputs = model(images)
+            loss = criterion(outputs, images)
 
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            total_train_loss += loss.item()
+
+            total_loss += loss.item()
+
         scheduler.step()
 
-        avg_train_loss = total_train_loss / len(train_loader)
-        train_losses.append(avg_train_loss)
-        print(f"Training Loss: {avg_train_loss}")
+        avg_loss = total_loss / len(train_loader)
+        print(f"Training Loss: {avg_loss:.6f}")
 
-        #Calculating Threshold
-    print("Computing threshold...")
+    # ------------------ THRESHOLD ------------------
+    print("\nComputing threshold...")
     model.eval()
     train_errors = []
+
     with torch.no_grad():
-        threshold_bar = tqdm(train_loader, desc=f" Epoch {epoch+1}/{NUM_EPOCHS}")
-        for images, _ in threshold_bar:
+        for images, _ in tqdm(train_loader):
             images = images.to(device)
             recon = model(images)
-            error = torch.mean((recon - images)**2, dim = [1,2,3])
+
+            error = torch.mean((images - recon) ** 2, dim=[1,2,3])
             train_errors.extend(error.cpu().numpy())
 
-    threshold = np.percentile(train_errors, 99)
-    print(f"Threshold: {threshold}")
+    threshold = np.percentile(train_errors, 95)
+    print("Threshold:", threshold)
+
+    # ------------------ VALIDATION ------------------
     model.eval()
-    all_labels = []
     all_scores = []
+    all_labels = []
 
-    val_bar = tqdm(test_loader, desc=f" Epoch {epoch +1}/{NUM_EPOCHS} [Validation]")
+    print("\nRunning evaluation...")
     with torch.no_grad():
-        for step, (images, labels) in enumerate(val_bar):
+        for images, labels in tqdm(test_loader):
+            images = images.to(device)
+            labels = labels.to(device)
 
-            images, labels = images.to(device), labels.to(device)
             recon = model(images)
-            error = torch.mean((images - recon) ** 2, dim = [1,2,3])
-            
+            error = torch.mean((images - recon) ** 2, dim=[1,2,3])
+
             all_scores.extend(error.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
-            
-            error_map = (images - recon)**2
-            heatmap = error_map.mean(dim=1)   # shape: (B, H, W)
-            heatmap = heatmap[0].cpu().numpy()
-            heatmap = (heatmap - heatmap.min()) / (heatmap.max() - heatmap.min() + 1e-8)
-            img = images[0].cpu().permute(1, 2, 0).numpy()
-            import matplotlib.pyplot as plt
 
-            plt.figure(figsize=(12,4))
-            
-            plt.subplot(1,3,1)
-            plt.title("Original")
-            plt.imshow(img)
-            plt.axis("off")
-            
-            plt.subplot(1,3,2)
-            plt.title("Reconstruction")
-            recon_img = recon[0].cpu().permute(1,2,0).numpy()
-            plt.imshow(recon_img)
-            plt.axis("off")
-            
-            plt.subplot(1,3,3)
-            plt.title("Anomaly Heatmap")
-            plt.imshow(img)
-            plt.imshow(heatmap, cmap='jet', alpha=0.5)  # overlay
-            plt.axis("off")
-            
-            plt.show()
-            break
+    # ------------------ DEBUG ------------------
+    print("\nDEBUG:")
+    print("Min score:", np.min(all_scores))
+    print("Max score:", np.max(all_scores))
+    print("Threshold:", threshold)
+
+    # ------------------ METRICS ------------------
     preds = [1 if s > threshold else 0 for s in all_scores]
 
     acc = accuracy_score(all_labels, preds)
     f1 = f1_score(all_labels, preds)
-    auc = roc_auc_score(all_labels, all_scores)
 
+    try:
+        auc = roc_auc_score(all_labels, all_scores)
+    except:
+        auc = float("nan")
 
+    print("\nRESULTS:")
     print("Accuracy:", acc)
     print("F1 Score:", f1)
     print("ROC-AUC:", auc)
-
 
 
 if __name__ == "__main__":
