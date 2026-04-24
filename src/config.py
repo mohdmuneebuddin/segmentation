@@ -5,5 +5,5 @@ NUM_EPOCHS = 50          # autoencoders on small data need many epochs
 WEIGHT_DECAY = 1e-5
 IMG_SIZE = 256
 SEED = 42
-DATASET_PATH = "/content/drive/MyDrive/datasets/"
+DATASET_PATH = "/content/drive/MyDrive/datasets"
 CATEGORY = "bottle"
