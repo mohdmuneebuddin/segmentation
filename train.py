@@ -34,13 +34,13 @@ def main():
     # ------------------ MODEL ------------------
     model = UNetAutoencoder(in_channels=3, out_channels=3).to(device)
 
-    criterion = nn.MSELoss()
+    criterion = nn.L1Loss()
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
     scheduler = CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS)
 
     print(f"Optimizer: AdamW (lr={LEARNING_RATE})")
     print(f"Scheduler: CosineAnnealingLR (T_max={NUM_EPOCHS})")
-    print("Loss: MSELoss")
+    print("Loss: L1Loss")
 
     # ------------------ TRAINING ------------------
     print("Training Started...")
