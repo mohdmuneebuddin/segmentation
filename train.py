@@ -34,7 +34,7 @@ def main():
     # ------------------ MODEL ------------------
     model = UNetAutoencoder(in_channels=3, out_channels=3).to(device)
 
-    criterion = nn.L1Loss()
+    criterion = nn.MSELoss()
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
     scheduler = CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS)
 
@@ -50,7 +50,7 @@ def main():
 
         train_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{NUM_EPOCHS}")
 
-        for images, _ in train_bar:   # ✅ FIXED unpacking
+        for images, _ in train_bar:   
             images = images.to(device)
 
             outputs = model(images)
