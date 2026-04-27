@@ -11,6 +11,7 @@ from sklearn.metrics import f1_score, accuracy_score, roc_auc_score, roc_curve
 
 from src.model import ConvAutoencoder
 from src.dataset import MVTecDataset
+from src.visualize import plot_evaluation
 from src.config import (
     BATCH_SIZE, TEST_BATCH_SIZE, LEARNING_RATE, NUM_EPOCHS,
     WEIGHT_DECAY, SEED, DATASET_PATH, CATEGORY,
@@ -144,19 +145,19 @@ def main():
     print(f"\nFINAL AUROC (threshold-free): {auc:.4f}")
     print(f"Best AUROC during training:   {best_auc:.4f}")
 
-    from src.visualize import plot_evaluation
+
  
-results = plot_evaluation(
+    results = plot_evaluation(
 
-    y_true=test_labels,
+        y_true=test_labels,
 
-    y_scores=test_scores,
+        y_scores=test_scores,
 
-    threshold=threshold,        # whichever threshold you settled on
+        threshold=threshold,        # whichever threshold you settled on
 
-    save_dir="plots",
+         save_dir="plots",
 
-)
+        )
  
 if __name__ == "__main__":
     main()
