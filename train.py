@@ -11,7 +11,7 @@ from sklearn.metrics import f1_score, accuracy_score, roc_auc_score, roc_curve
 
 from src.model import ConvAutoencoder
 from src.dataset import MVTecDataset
-from src.visualize import plot_evaluation
+from src.evalualize import plot_evaluation
 from src.config import (
     BATCH_SIZE, TEST_BATCH_SIZE, LEARNING_RATE, NUM_EPOCHS,
     WEIGHT_DECAY, SEED, DATASET_PATH, CATEGORY,
