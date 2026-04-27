@@ -144,6 +144,19 @@ def main():
     print(f"\nFINAL AUROC (threshold-free): {auc:.4f}")
     print(f"Best AUROC during training:   {best_auc:.4f}")
 
+    from src.visualize import plot_evaluation
+ 
+results = plot_evaluation(
 
+    y_true=test_labels,
+
+    y_scores=test_scores,
+
+    threshold=threshold,        # whichever threshold you settled on
+
+    save_dir="plots",
+
+)
+ 
 if __name__ == "__main__":
     main()
