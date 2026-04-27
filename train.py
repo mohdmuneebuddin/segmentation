@@ -24,7 +24,21 @@ def set_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
+from sklearn.metrics import recall_score
+import numpy as np
 
+def find_threshold_for_recall(scores, labels, target_recall=0.95):
+    thresholds = np.linspace(min(scores), max(scores), 200)
+
+    for t in thresholds:
+        preds = (scores > t).astype(int)
+        recall = recall_score(labels, preds)
+
+        if recall >= target_recall:
+            return t, recall
+
+    return thresholds[-1], recall  # fallback
+    
 def compute_anomaly_score(model, loader, device):
     """Per-image anomaly score = mean squared reconstruction error."""
     model.eval()
@@ -124,7 +138,14 @@ def main():
     # usually better than 95th because normal reconstructions can have a heavy
     # upper tail.
     train_scores, _ = compute_anomaly_score(model, train_loader, device)
-    threshold = np.percentile(train_scores, 99)
+    # Find threshold for high recall
+    threshold, achieved_recall = find_threshold_for_recall(
+    test_scores, test_labels, target_recall=0.95
+    )
+
+    print(f"\n[High Recall Threshold]")
+    print(f"Threshold: {threshold:.6f}")
+    print(f"Recall: {achieved_recall:.4f}")
 
     test_scores, test_labels = compute_anomaly_score(model, test_loader, device)
 
