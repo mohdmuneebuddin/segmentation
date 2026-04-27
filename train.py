@@ -18,43 +18,57 @@ from src.config import (
 )
 
 
+# ------------------ SEED ------------------
 def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
+
+# ------------------ THRESHOLD FOR HIGH RECALL ------------------
 from sklearn.metrics import recall_score
-import numpy as np
 
 def find_threshold_for_recall(scores, labels, target_recall=0.95):
     thresholds = np.linspace(min(scores), max(scores), 200)
 
+    best_t = thresholds[-1]
+    best_r = 0
+
     for t in thresholds:
         preds = (scores > t).astype(int)
-        recall = recall_score(labels, preds)
+        r = recall_score(labels, preds)
 
-        if recall >= target_recall:
-            return t, recall
+        if r >= target_recall:
+            return t, r
 
-    return thresholds[-1], recall  # fallback
-    
+        if r > best_r:
+            best_t, best_r = t, r
+
+    return best_t, best_r
+
+
+# ------------------ SCORE FUNCTION ------------------
 def compute_anomaly_score(model, loader, device):
-    """Per-image anomaly score = mean squared reconstruction error."""
     model.eval()
     scores, labels = [], []
+
     with torch.no_grad():
         for images, lbls in loader:
             images = images.to(device)
             recon = model(images)
             err = torch.mean((images - recon) ** 2, dim=[1, 2, 3])
+
             scores.extend(err.cpu().numpy())
             labels.extend(lbls.numpy())
+
     return np.array(scores), np.array(labels)
 
 
+# ------------------ MAIN ------------------
 def main():
     set_seed(SEED)
+
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
 
@@ -63,13 +77,13 @@ def main():
     test_root  = os.path.join(DATASET_PATH, CATEGORY, "test")
 
     train_dataset = MVTecDataset(train_root, train=True)
-    test_dataset  = MVTecDataset(test_root,  train=False)
+    test_dataset  = MVTecDataset(test_root, train=False)
 
-    # num_workers=2 on Colab is a safe default; pin_memory speeds up H2D copies.
     train_loader = DataLoader(
         train_dataset, batch_size=BATCH_SIZE, shuffle=True,
         num_workers=2, pin_memory=True, drop_last=True,
     )
+
     test_loader = DataLoader(
         test_dataset, batch_size=TEST_BATCH_SIZE, shuffle=False,
         num_workers=2, pin_memory=True,
@@ -81,11 +95,7 @@ def main():
     # ------------------ MODEL ------------------
     model = ConvAutoencoder(in_channels=3, out_channels=3).to(device)
 
-    # L1 is often better than L2 for image reconstruction: less blurry,
-    # more robust to outlier pixels. Try both and keep the one that gives
-    # higher test AUROC.
     criterion = nn.L1Loss()
-
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE,
                             weight_decay=WEIGHT_DECAY)
     scheduler = CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS)
@@ -97,9 +107,12 @@ def main():
     for epoch in range(NUM_EPOCHS):
         model.train()
         total_loss = 0.0
+
         bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{NUM_EPOCHS}")
+
         for images, _ in bar:
             images = images.to(device, non_blocking=True)
+
             recon = model(images)
             loss = criterion(recon, images)
 
@@ -113,14 +126,15 @@ def main():
         scheduler.step()
         avg_loss = total_loss / len(train_loader)
 
-        # Evaluate every few epochs — AUROC is threshold-free, so it's the
-        # cleanest signal of whether the model is improving as a detector.
+        # -------- evaluation --------
         if (epoch + 1) % 5 == 0 or epoch == NUM_EPOCHS - 1:
             scores, lbls = compute_anomaly_score(model, test_loader, device)
+
             try:
                 auc = roc_auc_score(lbls, scores)
             except ValueError:
                 auc = float("nan")
+
             print(f"Epoch {epoch+1}: train_loss={avg_loss:.5f}  test_AUROC={auc:.4f}")
 
             if auc > best_auc:
@@ -134,51 +148,43 @@ def main():
     print("\nLoading best model for final evaluation...")
     model.load_state_dict(torch.load(best_path, map_location=device))
 
-    # Threshold from training errors (anomaly-free set): 99th percentile is
-    # usually better than 95th because normal reconstructions can have a heavy
-    # upper tail.
+    test_scores, test_labels = compute_anomaly_score(model, test_loader, device)
+
+    # ---- IMPORTANT FIX: threshold from TRAIN only ----
     train_scores, _ = compute_anomaly_score(model, train_loader, device)
-    # Find threshold for high recall
+
     threshold, achieved_recall = find_threshold_for_recall(
-    test_scores, test_labels, target_recall=0.95
+        train_scores,
+        np.zeros_like(train_scores),
+        target_recall=0.95
     )
 
     print(f"\n[High Recall Threshold]")
     print(f"Threshold: {threshold:.6f}")
     print(f"Recall: {achieved_recall:.4f}")
 
-    test_scores, test_labels = compute_anomaly_score(model, test_loader, device)
+    # ------------------ EVALUATION ------------------
+    preds = (test_scores > threshold).astype(int)
 
-    # Alternative threshold: Youden's J on the test ROC curve.
-    # Report both so you can see how much the threshold matters.
-    fpr, tpr, thr = roc_curve(test_labels, test_scores)
-    j_idx = np.argmax(tpr - fpr)
-    youden_thr = thr[j_idx]
+    acc = accuracy_score(test_labels, preds)
+    f1  = f1_score(test_labels, preds)
 
-    for name, t in [("99th-pct-train", threshold), ("Youden-J", youden_thr)]:
-        preds = (test_scores > t).astype(int)
-        acc = accuracy_score(test_labels, preds)
-        f1  = f1_score(test_labels, preds)
-        print(f"\n[{name}] threshold={t:.6f}")
-        print(f"  accuracy={acc:.4f}  f1={f1:.4f}")
+    print(f"\n[High Recall Model]")
+    print(f"accuracy={acc:.4f}")
+    print(f"f1={f1:.4f}")
 
     auc = roc_auc_score(test_labels, test_scores)
     print(f"\nFINAL AUROC (threshold-free): {auc:.4f}")
     print(f"Best AUROC during training:   {best_auc:.4f}")
 
-
- 
-    results = plot_evaluation(
-
+    # ------------------ PLOTS ------------------
+    plot_evaluation(
         y_true=test_labels,
-
         y_scores=test_scores,
+        threshold=threshold,
+        save_dir="plots",
+    )
 
-        threshold=threshold,        # whichever threshold you settled on
 
-         save_dir="plots",
-
-        )
- 
 if __name__ == "__main__":
     main()
