@@ -31,22 +31,7 @@ from sklearn.metrics import recall_score
 
 def find_threshold_for_recall(scores, labels, target_recall=0.95):
     thresholds = np.linspace(min(scores), max(scores), 200)
-
-    best_t = thresholds[-1]
-    best_r = 0
-
-    for t in thresholds:
-        preds = (scores > t).astype(int)
-        r = recall_score(labels, preds)
-
-        if r >= target_recall:
-            return t, r
-
-        if r > best_r:
-            best_t, best_r = t, r
-
-    return best_t, best_r
-
+    return thresholds[-1]
 
 # ------------------ SCORE FUNCTION ------------------
 def compute_anomaly_score(model, loader, device):
@@ -153,25 +138,24 @@ def main():
     # ---- IMPORTANT FIX: threshold from TRAIN only ----
     train_scores, _ = compute_anomaly_score(model, train_loader, device)
 
-    threshold, achieved_recall = find_threshold_for_recall(
+    threshold = find_threshold_for_recall(
         train_scores,
         np.zeros_like(train_scores),
         target_recall=0.95
     )
-
-    print(f"\n[High Recall Threshold]")
+    
     print(f"Threshold: {threshold:.6f}")
-    print(f"Recall: {achieved_recall:.4f}")
 
     # ------------------ EVALUATION ------------------
     preds = (test_scores > threshold).astype(int)
 
     acc = accuracy_score(test_labels, preds)
     f1  = f1_score(test_labels, preds)
-
+    recall = recall_score(test_labels, preds)
     print(f"\n[High Recall Model]")
     print(f"accuracy={acc:.4f}")
     print(f"f1={f1:.4f}")
+    print(f"recall={recall:.4f}")
 
     auc = roc_auc_score(test_labels, test_scores)
     print(f"\nFINAL AUROC (threshold-free): {auc:.4f}")
