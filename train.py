@@ -150,7 +150,7 @@ def main():
 
     # ------------------ EVALUATION ------------------
     preds = (test_scores > threshold).astype(int)
-
+    print('preds :',preds)
     acc = accuracy_score(test_labels, preds)
     f1  = f1_score(test_labels, preds)
     recall = recall_score(test_labels, preds)
