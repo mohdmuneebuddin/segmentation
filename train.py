@@ -30,7 +30,7 @@ def set_seed(seed):
 from sklearn.metrics import recall_score
 
 def find_threshold_for_recall(scores, labels, target_recall=0.95):
-    thresholds = np.linspace(min(scores), max(scores), 200)
+    thresholds = (min(scores) + max(scores))/2
     return thresholds[-1]
 
 # ------------------ SCORE FUNCTION ------------------
