@@ -134,6 +134,8 @@ def main():
     model.load_state_dict(torch.load(best_path, map_location=device))
 
     test_scores, test_labels = compute_anomaly_score(model, test_loader, device)
+    print('test score: 'test_scores)
+    print('labels: 'test_labels)
 
     # ---- IMPORTANT FIX: threshold from TRAIN only ----
     train_scores, _ = compute_anomaly_score(model, train_loader, device)
