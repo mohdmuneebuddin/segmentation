@@ -145,7 +145,7 @@ def main():
         #np.zeros_like(train_scores),
         #target_recall=0.95
     #)
-    threshold = 0.032712
+    threshold = 0.035712
     print(f"Threshold: {threshold:.6f}")
 
     # ------------------ EVALUATION ------------------
