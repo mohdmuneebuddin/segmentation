@@ -29,9 +29,9 @@ def set_seed(seed):
 # ------------------ THRESHOLD FOR HIGH RECALL ------------------
 from sklearn.metrics import recall_score
 
-#def find_threshold_for_recall(scores, labels, target_recall=0.95):
-    #thresholds = min(scores)
-    #return thresholds
+def find_threshold_for_recall(scores, labels, target_recall=0.95):
+    thresholds = min(scores)
+    return thresholds
 
 # ------------------ SCORE FUNCTION ------------------
 def compute_anomaly_score(model, loader, device):
@@ -140,12 +140,12 @@ def main():
     # ---- IMPORTANT FIX: threshold from TRAIN only ----
     train_scores, _ = compute_anomaly_score(model, train_loader, device)
 
-    #threshold = find_threshold_for_recall(
-        #train_scores,
-        #np.zeros_like(train_scores),
-        #target_recall=0.95
-    #)
-    threshold = 0.035712
+    threshold = find_threshold_for_recall(
+        train_scores,
+        np.zeros_like(train_scores),
+        target_recall=0.95
+    )
+    #threshold = 0.035712
     print(f"Threshold: {threshold:.6f}")
 
     # ------------------ EVALUATION ------------------
