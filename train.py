@@ -31,7 +31,7 @@ from sklearn.metrics import recall_score
 
 def find_threshold_for_recall(scores, labels, target_recall=0.95):
     thresholds = (min(scores) + max(scores))/2
-    return thresholds[-1]
+    return thresholds
 
 # ------------------ SCORE FUNCTION ------------------
 def compute_anomaly_score(model, loader, device):
