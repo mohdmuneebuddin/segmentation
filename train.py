@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn.metrics import f1_score, accuracy_score, roc_auc_score, roc_curve
 
-from src.autoencmodel import AutoEncoder
+from src.unet import Unet
 from src.dataset import MVTecDataset
 from src.evalualize import plot_evaluation
 from src.config import (
@@ -78,7 +78,7 @@ def main():
     print("Test set — good:", labels.count(0), " defect:", labels.count(1))
 
     # ------------------ MODEL ------------------
-    model = AutoEncoder(in_channels=3, out_channels=3).to(device)
+    model = Unet(in_channels=3, out_channels=3).to(device)
 
     criterion = nn.L1Loss()
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE,
