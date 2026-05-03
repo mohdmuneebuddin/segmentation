@@ -5,7 +5,7 @@ import torch.nn as nn
 import torchvision.transforms as TF
 
 class DoubleConv(nn.Module):
-    def __init__(selfself, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels):
         super(DoubleConv, self).__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
@@ -48,7 +48,7 @@ class Decoder(nn.Module):
         return self.decoder(x)
 
 class AutoEncoder(nn.Module):
-    def __init__(self):
+    def __init__(self, in_channel, out_channel):
         super(AutoEncoder, self).__init__()
         self.encoder = Encoder()
         self.decoder = Decoder()
